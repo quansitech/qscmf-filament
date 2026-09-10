@@ -1,6 +1,6 @@
 # quansitech/cmf-module-auditing
 
-QS CMF 审计模块。安装：`composer require quansitech/cmf-module-auditing`。总文档与接入指南见 monorepo：[quansitech/cmf](https://github.com/quansitech/cmf)。
+QS CMF 审计模块。安装：`composer require quansitech/cmf-module-auditing`。总文档与接入指南见 monorepo：[quansitech/qscmf-filament](https://github.com/quansitech/qscmf-filament)。
 
 ## 提供
 

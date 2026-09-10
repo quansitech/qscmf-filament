@@ -3,14 +3,14 @@
 本仓库是 monorepo（真源），通过 CI split 出 4 个只读镜像仓库，Packagist 从镜像仓库取包。
 
 ```
-quansitech/cmf（本仓库，所有开发只在这里）
+quansitech/qscmf-filament（本仓库，所有开发只在这里）
    ├── core/      ──split──► quansitech/cmf-core            ──┐
    ├── users/     ──split──► quansitech/cmf-module-users     ──┤
    ├── roles/     ──split──► quansitech/cmf-module-roles     ──┼──► Packagist
    └── auditing/  ──split──► quansitech/cmf-module-auditing  ──┘
 ```
 
-> 以下假设 monorepo 仓库为 `quansitech/cmf`、镜像仓库为 `quansitech/cmf-*`。命名不同时全局替换即可。
+> 以下假设 monorepo 仓库为 `quansitech/qscmf-filament`、镜像仓库为 `quansitech/cmf-*`。命名不同时全局替换即可。
 
 ## 一次性配置
 

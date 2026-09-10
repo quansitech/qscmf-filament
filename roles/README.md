@@ -1,6 +1,6 @@
 # quansitech/cmf-module-roles
 
-QS CMF 角色模块。安装：`composer require quansitech/cmf-module-roles`。总文档与接入指南见 monorepo：[quansitech/cmf](https://github.com/quansitech/cmf)。
+QS CMF 角色模块。安装：`composer require quansitech/cmf-module-roles`。总文档与接入指南见 monorepo：[quansitech/qscmf-filament](https://github.com/quansitech/qscmf-filament)。
 
 ## 提供
 
