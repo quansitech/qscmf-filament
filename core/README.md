@@ -2,6 +2,8 @@
 
 QS CMF 核心包。安装：`composer require quansitech/cmf-core`。总文档与接入指南见 monorepo：[quansitech/qscmf-filament](https://github.com/quansitech/qscmf-filament)。
 
+> 本仓库由 monorepo CI 自动生成的镜像（split 产物），请勿直接提交或提 PR；开发与 issue 请到上方 monorepo。
+
 ## 提供
 
 - `Quansitech\Cmf\Core\Providers\Filament\CmfPanelProvider`：后台面板基座（中间件栈 / 登录 / 配色 / 主题），宿主 `AdminPanelProvider` 继承它

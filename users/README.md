@@ -2,6 +2,8 @@
 
 QS CMF 用户模块。安装：`composer require quansitech/cmf-module-users`。总文档与接入指南见 monorepo：[quansitech/qscmf-filament](https://github.com/quansitech/qscmf-filament)。
 
+> 本仓库由 monorepo CI 自动生成的镜像（split 产物），请勿直接提交或提 PR；开发与 issue 请到上方 monorepo。
+
 ## 提供
 
 - `Models\User`：集成 FilamentUser + HasRoles + Auditable 的用户模型（工厂产出 `config('cmf-users.model')` 配置的模型）

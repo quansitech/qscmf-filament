@@ -2,6 +2,8 @@
 
 QS CMF 角色模块。安装：`composer require quansitech/cmf-module-roles`。总文档与接入指南见 monorepo：[quansitech/qscmf-filament](https://github.com/quansitech/qscmf-filament)。
 
+> 本仓库由 monorepo CI 自动生成的镜像（split 产物），请勿直接提交或提 PR；开发与 issue 请到上方 monorepo。
+
 ## 提供
 
 - 角色管理 Resource（Filament Shield 集成，权限勾选差异经 AuditLogger 补记审计，View 页挂审计历史）
