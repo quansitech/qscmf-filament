@@ -1,0 +1,23 @@
+{
+    "name": "quansitech/cmf-monorepo",
+    "description": "QS CMF monorepo 开发入口：聚合 core / users / roles / auditing 四个包（不对外发布）",
+    "type": "project",
+    "license": "proprietary",
+    "repositories": [
+        { "type": "path", "url": "core", "options": { "symlink": true } },
+        { "type": "path", "url": "users", "options": { "symlink": true } },
+        { "type": "path", "url": "roles", "options": { "symlink": true } },
+        { "type": "path", "url": "auditing", "options": { "symlink": true } }
+    ],
+    "require": {
+        "quansitech/cmf-core": "^1.0@dev",
+        "quansitech/cmf-module-auditing": "^1.0@dev",
+        "quansitech/cmf-module-roles": "^1.0@dev",
+        "quansitech/cmf-module-users": "^1.0@dev"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "sort-packages": true
+    }
+}

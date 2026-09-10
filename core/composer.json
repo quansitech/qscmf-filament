@@ -1,0 +1,31 @@
+{
+    "name": "quansitech/cmf-core",
+    "description": "QS CMF 核心：Filament 后台面板基座、模块插件注册机制与 cmf:install 初始化命令",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "filament/filament": "^5.0",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Core\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Quansitech\\Cmf\\Core\\CmfCoreServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,35 @@
+{
+    "name": "quansitech/cmf-module-users",
+    "description": "QS CMF 用户模块：用户模型、后台用户管理 Resource、RBAC/审计集成",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "bezhansalleh/filament-shield": "^4.0",
+        "owen-it/laravel-auditing": "^14.0",
+        "quansitech/cmf-core": "^1.0",
+        "spatie/laravel-permission": "^8.0",
+        "tapp/filament-auditing": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Users\\": "src/",
+            "Quansitech\\Cmf\\Users\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Quansitech\\Cmf\\Users\\CmfUsersServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

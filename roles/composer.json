@@ -1,0 +1,33 @@
+{
+    "name": "quansitech/cmf-module-roles",
+    "description": "QS CMF 角色模块：后台角色管理 Resource、Filament Shield 集成、可审计角色模型",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "bezhansalleh/filament-shield": "^4.0",
+        "quansitech/cmf-core": "^1.0",
+        "quansitech/cmf-module-auditing": "^1.0",
+        "spatie/laravel-permission": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Roles\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Quansitech\\Cmf\\Roles\\CmfRolesServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

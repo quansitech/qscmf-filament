@@ -1,0 +1,20 @@
+<?php
+
+namespace App\Providers\Filament;
+
+use Filament\Panel;
+use Quansitech\Cmf\Core\Providers\Filament\CmfPanelProvider;
+
+class AdminPanelProvider extends CmfPanelProvider
+{
+    public function panel(Panel $panel): Panel
+    {
+        return parent::panel($panel);
+
+        // 项目级配置示例：
+        // return parent::panel($panel)
+        //     ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
+        //     ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
+        //     ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets');
+    }
+}

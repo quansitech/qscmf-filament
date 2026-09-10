@@ -1,0 +1,33 @@
+{
+    "name": "quansitech/cmf-module-auditing",
+    "description": "QS CMF 审计模块：操作审计后台（中文版 AuditResource）、回滚 Action、自定义审计事件支持",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "bezhansalleh/filament-shield": "^4.0",
+        "owen-it/laravel-auditing": "^14.0",
+        "quansitech/cmf-core": "^1.0",
+        "tapp/filament-auditing": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Auditing\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Quansitech\\Cmf\\Auditing\\CmfAuditingServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
