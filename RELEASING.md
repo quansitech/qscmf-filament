@@ -66,4 +66,5 @@ Packagist 收到 webhook 后刷新版本。统一版本策略下一次 tag 会�
 - **不要**向镜像仓库直接提交或提 PR，内容会被下一次 split 覆盖；issue/PR 请指向 monorepo。
 - 镜像仓库默认分支保持 `main`，与 workflow 中 `branch: main` 一致。
 - tag 必须是合法 semver（`v1.0.0` 或 `1.0.0`），否则 Composer 不识别为版本。
+- `SPLIT_TOKEN` 未配置时 workflow 只打印 notice 并跳过 split（不报红），配置后自动生效。
 - 发布 = 打 tag，不要手动改镜像；所有变更先合入 monorepo `main`。

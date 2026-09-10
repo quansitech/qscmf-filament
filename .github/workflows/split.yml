@@ -29,8 +29,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check split token
+        id: preflight
+        env:
+          SPLIT_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+        run: |
+          if [ -z "$SPLIT_TOKEN" ]; then
+            echo "::notice::SPLIT_TOKEN 未配置，跳过 split（配置见 RELEASING.md）"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Split branch
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ steps.preflight.outputs.enabled == 'true' && !startsWith(github.ref, 'refs/tags/') }}
         uses: danharrin/monorepo-split-github-action@v2.4.0
         with:
           package_directory: ${{ matrix.package.local_path }}
@@ -41,7 +53,7 @@ jobs:
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'
 
       - name: Split tag
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ steps.preflight.outputs.enabled == 'true' && startsWith(github.ref, 'refs/tags/') }}
         uses: danharrin/monorepo-split-github-action@v2.4.0
         with:
           package_directory: ${{ matrix.package.local_path }}
