@@ -6,15 +6,16 @@ namespace Quansitech\Cmf\Core\Console;
 
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Facades\Filament;
+use Filament\Panel;
+use Filament\PanelProvider;
+use Filament\PanelRegistry;
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use OwenIt\Auditing\AuditingServiceProvider;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\PermissionServiceProvider;
 use Symfony\Component\Console\Attribute\AsCommand;
-
-use function Laravel\Prompts\password;
-use function Laravel\Prompts\text;
 
 /**
  * 初始化 QS CMF：发布模块配置 → 迁移 → 生成 Shield 权限点 →
@@ -24,10 +25,9 @@ use function Laravel\Prompts\text;
 class InstallCommand extends Command
 {
     protected $signature = 'cmf:install
-        {--panel=admin : Filament 面板 ID}
-        {--admin-name= : 初始管理员姓名}
-        {--admin-email= : 初始管理员邮箱}
-        {--admin-password= : 初始管理员密码}
+        {--admin-name= : 初始管理员姓名（默认 admin）}
+        {--admin-email= : 初始管理员邮箱（默认 admin@ 应用域名）}
+        {--admin-password= : 初始管理员密码（默认随机生成并在终端打印）}
         {--skip-admin : 跳过创建初始管理员}
         {--force : 强制覆盖已发布的配置文件}';
 
@@ -36,30 +36,31 @@ class InstallCommand extends Command
         $this->components->info('开始安装 QS CMF...');
 
         $this->publishModuleAssets();
+        $this->ensureAuthUserModel();
         $this->publishModuleMigrations();
         $this->call('migrate', ['--force' => true]);
+        $this->scaffoldPanel();
         $this->generateShieldPermissions();
         $this->setupRoles();
-        $this->scaffoldPanel();
         $this->createAdminUser();
 
         $this->components->info('QS CMF 安装完成。');
 
         $this->components->bulletList([
-            '确认 vite.config.js 的 input 包含 resources/css/filament/admin/theme.css 后执行 npm run build',
-            '访问 /'.$this->getPanelPath().' 进入后台',
+            '执行 npm install && npm run build 编译 Filament 主题（vite.config.js 的 input 需包含 resources/css/filament/admin/theme.css）',
+            '执行 php artisan serve 后访问 '.url($this->getPanelPath()).' 登录后台',
         ]);
 
         return self::SUCCESS;
     }
 
     /**
-     * 发布各 CMF 模块登记的配置与语言包（tag: cmf-config / cmf-lang），
+     * 发布各 CMF 模块登记的配置、语言包与视图（tag: cmf-config / cmf-lang / cmf-views），
      * 不覆盖项目已有文件（除非 --force）。
      */
     protected function publishModuleAssets(): void
     {
-        $this->components->task('发布模块配置与语言包', function (): void {
+        $this->components->task('发布模块配置、语言包与视图', function (): void {
             $params = ['--no-interaction' => true];
 
             if ($this->option('force')) {
@@ -68,6 +69,7 @@ class InstallCommand extends Command
 
             $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-config']);
             $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-lang']);
+            $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-views']);
         });
     }
 
@@ -116,7 +118,7 @@ class InstallCommand extends Command
             $this->callSilently('shield:generate', [
                 '--all' => true,
                 '--option' => 'permissions',
-                '--panel' => $this->option('panel'),
+                '--panel' => 'admin',
                 '--no-interaction' => true,
             ]);
         });
@@ -161,7 +163,8 @@ class InstallCommand extends Command
     }
 
     /**
-     * 脚手架宿主 AdminPanelProvider 与 Filament 主题，并注册到 bootstrap/providers.php。
+     * 脚手架宿主 AdminPanelProvider 与 Filament 主题，注册到 bootstrap/providers.php，
+     * 并在当前进程中动态注册，保证后续 shield:generate 能解析到面板。
      */
     protected function scaffoldPanel(): void
     {
@@ -171,33 +174,157 @@ class InstallCommand extends Command
                 '--no-interaction' => true,
             ]);
 
-            $providersFile = base_path('bootstrap/providers.php');
-
-            if (! file_exists($providersFile)) {
-                return;
-            }
-
-            $contents = file_get_contents($providersFile);
-
-            if ($contents === false || str_contains($contents, 'AdminPanelProvider::class')) {
-                return;
-            }
-
-            $patched = preg_replace(
-                '/return \[\s*/',
-                "return [\n    App\\Providers\\Filament\\AdminPanelProvider::class,\n",
-                $contents,
-                1,
-            );
-
-            if (is_string($patched)) {
-                file_put_contents($providersFile, $patched);
-            }
+            $this->registerAdminPanelProvider();
         });
+    }
+
+    protected function registerAdminPanelProvider(): void
+    {
+        $providerClass = 'App\\Providers\\Filament\\AdminPanelProvider';
+
+        if (class_exists($providerClass)) {
+            /** @var PanelProvider $provider */
+            $provider = new $providerClass($this->laravel);
+            $panel = $provider->panel(Panel::make());
+
+            $registry = app(PanelRegistry::class);
+
+            // Filament 5 的 Filament::registerPanel() 走容器 resolving 回调，
+            // PanelRegistry 已被解析时不会生效，这里直接注册。
+            if (! $registry->get($panel->getId())) {
+                $registry->register($panel);
+            }
+        }
+
+        $providersFile = base_path('bootstrap/providers.php');
+
+        if (! is_file($providersFile)) {
+            return;
+        }
+
+        $contents = file_get_contents($providersFile);
+
+        if (! is_string($contents) || str_contains($contents, 'AdminPanelProvider::class')) {
+            return;
+        }
+
+        $patched = preg_replace(
+            '/return \[\s*/',
+            "return [\n    App\\Providers\\Filament\\AdminPanelProvider::class,\n",
+            $contents,
+            1,
+        );
+
+        if (is_string($patched)) {
+            file_put_contents($providersFile, $patched);
+        }
+    }
+
+    /**
+     * 把宿主的 auth 用户模型指向 CMF 用户模型（仅当宿主未使用带 HasRoles 的模型时），
+     * 否则创建出来的管理员无法登录 Filament 面板。
+     * Laravel 11+ 默认 config/auth.php 使用 env('AUTH_MODEL', User::class)，
+     * 因此优先写入 .env 的 AUTH_MODEL；旧项目已发布 config/auth.php 的走文件替换。
+     */
+    protected function ensureAuthUserModel(): void
+    {
+        /** @var class-string|null $cmfModel */
+        $cmfModel = config('cmf-users.model');
+
+        if (! is_string($cmfModel) || ! class_exists($cmfModel) || ! method_exists($cmfModel, 'assignRole')) {
+            return;
+        }
+
+        /** @var class-string|null $authModel */
+        $authModel = config('auth.providers.users.model');
+
+        if (is_string($authModel) && $authModel !== '' && method_exists($authModel, 'assignRole')) {
+            return;
+        }
+
+        $patchedConfig = $this->patchAuthConfig($cmfModel);
+        $patchedEnv = $this->patchEnvAuthModel($cmfModel);
+
+        config(['auth.providers.users.model' => $cmfModel]);
+
+        if ($patchedConfig || $patchedEnv) {
+            $this->components->twoColumnDetail('用户模型', $cmfModel);
+
+            if ($patchedEnv) {
+                $this->callSilently('config:clear');
+            }
+        } else {
+            $this->components->warn("未自动绑定用户模型，请手动将 config/auth.php 的 providers.users.model 指向 {$cmfModel}。");
+        }
+    }
+
+    /**
+     * 旧式 config/auth.php（含 App\Models\User 字面量）直接替换模型。
+     */
+    protected function patchAuthConfig(string $cmfModel): bool
+    {
+        $configPath = config_path('auth.php');
+
+        if (! is_file($configPath)) {
+            return false;
+        }
+
+        $contents = file_get_contents($configPath);
+
+        if (! is_string($contents)) {
+            return false;
+        }
+
+        $patched = str_replace(
+            ['App\\Models\\User::class', 'use App\\Models\\User;'],
+            ['\\'.$cmfModel.'::class', 'use '.$cmfModel.';'],
+            $contents,
+        );
+
+        if ($patched === $contents) {
+            return false;
+        }
+
+        file_put_contents($configPath, $patched);
+
+        return true;
+    }
+
+    /**
+     * 在 .env 写入 AUTH_MODEL（Laravel 11+ 默认 auth 配置会读取它）。
+     */
+    protected function patchEnvAuthModel(string $cmfModel): bool
+    {
+        $envPath = base_path('.env');
+
+        if (! is_file($envPath)) {
+            return false;
+        }
+
+        $contents = file_get_contents($envPath);
+
+        if (! is_string($contents)) {
+            return false;
+        }
+
+        if (preg_match('/^AUTH_MODEL=/m', $contents)) {
+            $patched = preg_replace('/^AUTH_MODEL=.*$/m', 'AUTH_MODEL='.$cmfModel, $contents, 1);
+        } else {
+            $patched = rtrim($contents, "\n")."\nAUTH_MODEL={$cmfModel}\n";
+        }
+
+        if (! is_string($patched) || $patched === $contents) {
+            return false;
+        }
+
+        file_put_contents($envPath, $patched);
+
+        return true;
     }
 
     /**
      * 创建初始管理员并分配 super_admin 角色。
+     * 姓名/邮箱未指定时取默认值，密码未指定时随机生成并打印在终端。
      */
     protected function createAdminUser(): void
     {
@@ -214,20 +341,22 @@ class InstallCommand extends Command
             return;
         }
 
-        if ($this->input->isInteractive()) {
-            $name = $this->option('admin-name') ?? text('管理员姓名', default: 'admin', required: true);
-            $email = $this->option('admin-email') ?? text('管理员邮箱', required: true, validate: fn (string $value): ?string => filter_var($value, FILTER_VALIDATE_EMAIL) ? null : '邮箱格式不正确');
-            $password = $this->option('admin-password') ?? password('管理员密码', required: true, validate: fn (string $value): ?string => mb_strlen($value) >= 8 ? null : '密码至少 8 位');
-        } else {
-            $name = $this->option('admin-name');
-            $email = $this->option('admin-email');
-            $password = $this->option('admin-password');
+        $name = (string) ($this->option('admin-name') ?: 'admin');
+        $email = (string) ($this->option('admin-email') ?: $this->defaultAdminEmail());
 
-            if (! $name || ! $email || ! $password) {
-                $this->components->warn('非交互模式且未提供 --admin-name/--admin-email/--admin-password，跳过创建管理员。');
+        /** @var string|null $password */
+        $password = $this->option('admin-password');
+        $passwordGenerated = ! is_string($password) || $password === '';
 
-                return;
-            }
+        if ($passwordGenerated) {
+            $password = Str::password(16, symbols: false);
+        }
+
+        /** @var string $password */
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->components->warn("管理员邮箱 {$email} 格式不正确，跳过创建管理员。");
+
+            return;
         }
 
         if ($userModel::query()->where('email', $email)->exists()) {
@@ -244,13 +373,38 @@ class InstallCommand extends Command
 
         $user->assignRole(config('filament-shield.super_admin.name', 'super_admin'));
 
-        $this->components->info("管理员 {$email} 创建成功（super_admin）。");
+        $this->newLine();
+        $this->components->info('初始管理员已创建（super_admin）');
+        $this->components->twoColumnDetail('登录邮箱', $email);
+        $this->components->twoColumnDetail('初始密码', $password);
+        $this->components->twoColumnDetail('后台地址', url($this->getPanelPath()));
+
+        if ($passwordGenerated) {
+            $this->components->warn('密码仅在本次安装输出，请立即保存，并在登录后及时修改。');
+        }
+
+        $this->newLine();
+    }
+
+    /**
+     * 默认管理员邮箱：admin@<APP_URL 域名>。
+     * 本地开发（localhost 等无点域名）回退为 admin@example.com（邮箱校验不接受无点域名）。
+     */
+    protected function defaultAdminEmail(): string
+    {
+        $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        if (! is_string($host) || $host === '' || ! str_contains($host, '.')) {
+            return 'admin@example.com';
+        }
+
+        return 'admin@'.$host;
     }
 
     protected function getPanelPath(): string
     {
         try {
-            return Filament::getPanel($this->option('panel'))->getPath();
+            return Filament::getPanel('admin')->getPath();
         } catch (\Throwable) {
             return 'admin';
         }

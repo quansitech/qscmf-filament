@@ -56,6 +56,10 @@ class CmfAuditingServiceProvider extends PackageServiceProvider
         $this->publishes([
             __DIR__.'/../stubs/lang/vendor/filament-auditing/zh_CN/filament-auditing.php' => lang_path('vendor/filament-auditing/zh_CN/filament-auditing.php'),
         ], 'cmf-lang');
+
+        $this->publishes([
+            __DIR__.'/../stubs/views/vendor/filament-auditing' => resource_path('views/vendor/filament-auditing'),
+        ], 'cmf-views');
     }
 
     /**
