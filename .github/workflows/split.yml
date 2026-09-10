@@ -8,7 +8,8 @@ on:
       - 'v*'
 
 env:
-  GITHUB_TOKEN: ${{ secrets.SPLIT_TOKEN }}
+  # 该 action 只支持经典 PAT 裸用；fine-grained PAT 需要 oauth2: 前缀作为密码认证
+  GITHUB_TOKEN: oauth2:${{ secrets.SPLIT_TOKEN }}
 
 jobs:
   split:

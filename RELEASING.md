@@ -17,7 +17,9 @@ quansitech/qscmf-filament（本仓库，所有开发只在这里）
 1. 在 GitHub 创建 4 个 **public** 空仓库（不要初始化 README），保持默认分支 `main`：
    `cmf-core`、`cmf-module-users`、`cmf-module-roles`、`cmf-module-auditing`。
 2. 创建 fine-grained PAT，仅对这 4 个仓库授予 `Contents: Read and write`（或用 GitHub App 生成安装 token）。
-   在本仓库 Settings → Secrets and variables → Actions 添加 secret：`SPLIT_TOKEN`。
+   在本仓库 Settings → Secrets and variables → Actions 添加 secret：`SPLIT_TOKEN`（secret 里只放 token 原文，
+   不带任何前缀；workflow 会自动加 `oauth2:` 前缀，因为 split action 不支持裸 fine-grained token，见
+   [action issue #47](https://github.com/danharrin/monorepo-split-github-action/issues/47)）。
 3. 推送首个版本 tag，等 workflow 跑完：
 
    ```bash
