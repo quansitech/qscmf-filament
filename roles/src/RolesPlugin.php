@@ -22,11 +22,14 @@ class RolesPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel
-            ->plugin(FilamentShieldPlugin::make())
-            ->resources([
-                config('cmf-roles.resource'),
-            ]);
+        // 必须先注册 CMF 的 RoleResource 再挂载 Shield：plugin() 会立即触发
+        // Shield 的 register()，其 isResourcePublished() 检测到面板已有
+        // RoleResource 时会跳过自带的 RoleResource，否则导航会出现两个"角色"。
+        $panel->resources([
+            config('cmf-roles.resource'),
+        ]);
+
+        $panel->plugin(FilamentShieldPlugin::make());
     }
 
     public function boot(Panel $panel): void
