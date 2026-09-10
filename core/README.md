@@ -8,7 +8,7 @@ QS CMF 核心包。安装：`composer require quansitech/cmf-core`。总文档�
 
 - `Quansitech\Cmf\Core\Providers\Filament\CmfPanelProvider`：后台面板基座（中间件栈 / 登录 / 配色 / 主题），宿主 `AdminPanelProvider` 继承它
 - `Quansitech\Cmf\Core\Cmf`：模块插件注册表，模块 ServiceProvider 用 `Cmf::registerPlugin()` 登记，面板自动挂载
-- `php artisan cmf:install`：初始化（配置/语言包发布 → 迁移 → Shield 权限点 → 角色 → 面板脚手架 → 管理员）
+- `php artisan cmf:install`：一键初始化（配置/语言包发布 → 用户模型绑定 → 迁移 → 面板脚手架 → Shield 权限点 → 角色 → 初始超管）。管理员密码默认随机生成并打印在终端，支持 `--admin-email` / `--admin-password` / `--skip-admin`
 - `php artisan cmf:extend {module}`：生成模块 Resource 的宿主继承类用于深度定制
 - `php artisan make:cmf-module {name}`：生成新模块包骨架
 

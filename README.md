@@ -17,22 +17,63 @@
 `quansitech/cmf-core` / `quansitech/cmf-module-users` / `quansitech/cmf-module-roles` / `quansitech/cmf-module-auditing`。
 发版只需在本仓库打 tag（如 `v1.1.0`），完整流程见 [RELEASING.md](RELEASING.md)。
 
-## 新项目接入
+## 安装（新项目）
+
+环境要求：PHP >= 8.3、Composer 2、Node.js + npm（编译 Filament 主题）、MySQL / PostgreSQL / SQLite 任一。
 
 ```bash
+# 1. 创建 Laravel 项目
+laravel new my-admin        # 未装 laravel/installer 时：composer create-project laravel/laravel my-admin
+cd my-admin
+
+# 2. 配置数据库：按需修改 .env 的 DB_*（新项目默认 SQLite，可直接用）
+
+# 3. 安装 QS CMF
 composer require quansitech/cmf-core quansitech/cmf-module-users quansitech/cmf-module-roles quansitech/cmf-module-auditing
+
+# 4. 一键初始化
 php artisan cmf:install
+
+# 5. 编译前端资源
+npm install
+npm run build
+
+# 6. 启动并登录
+php artisan serve
+# 访问 http://localhost:8000/admin，用第 4 步终端输出的账号登录
 ```
 
-参与这些包本身的开发时（本地联调），宿主 `composer.json` 改用 path 仓库指向本目录，symlink 即时生效：
+`cmf:install` 依次完成：发布模块配置/语言包（不覆盖已有文件，`--force` 可强制覆盖）→ 绑定用户模型（宿主用户模型未集成 HasRoles 时，自动把 `AUTH_MODEL` 指向 `Quansitech\Cmf\Users\Models\User`）→ 发布 permission/audits 迁移并 migrate → 脚手架 `AdminPanelProvider` + Filament 主题（注册到 `bootstrap/providers.php`）→ `shield:generate` 生成权限点 → 创建 super_admin/panel_user 角色 → **创建初始超管并在终端打印邮箱和随机密码**。
+
+常用参数：
+
+```bash
+php artisan cmf:install --admin-email=you@example.com --admin-password='自定义密码'
+php artisan cmf:install --skip-admin          # 跳过创建管理员
+```
+
+### AI 辅助开发（Laravel Boost，推荐）
+
+[Laravel Boost](https://laravel.com/docs/boost) 为 Claude Code / Cursor / Copilot / Codex 等 AI 编码工具提供 Laravel 项目上下文、最新文档检索和 MCP 工具：
+
+```bash
+composer require laravel/boost --dev
+php artisan boost:install
+```
+
+- 自动识别项目里的 Filament / Livewire 等依赖，生成 AI guidelines、skills 与 MCP 配置（`.mcp.json`、`CLAUDE.md`、`AGENTS.md`、`boost.json` 等，可加入 `.gitignore`）
+- AI 可直接读取数据库结构、路由、日志并执行 artisan，写 Resource / Policy / 迁移时更贴合 Laravel 与 Filament 约定
+- 依赖升级后执行 `php artisan boost:update` 刷新上下文
+
+### 本地联调（参与这些包的开发）
+
+宿主 `composer.json` 改用 path 仓库指向本目录，symlink 即时生效：
 
 ```json
 "repositories": [
     { "type": "path", "url": "../qscmf-filament/*", "options": { "symlink": true } }
 ]
 ```
-
-`cmf:install` 依次完成：发布模块配置/语言包（不覆盖已有文件）→ 发布 permission/audits 迁移并 migrate → `shield:generate` 生成权限点 → 创建 super_admin/panel_user 角色并挂载权限 → 脚手架 `AdminPanelProvider` + Filament 主题（并注册到 `bootstrap/providers.php`）→ 交互创建初始管理员。完成后访问 `/admin` 即是现成后台。
 
 ## 双模使用：默认开箱即用，按需深度定制
 
