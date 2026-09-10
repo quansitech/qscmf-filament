@@ -21,6 +21,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Quansitech\Cmf\Core\Cmf;
+use Quansitech\Cmf\Core\Filament\Pages\Auth\Login;
 
 /**
  * CMF 后台面板基座：固化中间件栈 / 登录 / 配色 / 默认页面与 Widget，
@@ -36,9 +37,12 @@ class CmfPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
+            ->brandLogo(asset('vendor/cmf-core/images/brand-logo.png'))
+            ->brandLogoHeight('2.5rem')
             ->colors([
-                'primary' => Color::Amber,
+                // 全思科技品牌蓝（logo 渐变色系，与登录页主按钮一致）
+                'primary' => Color::hex('#0EB6F0'),
             ])
             ->pages([
                 Dashboard::class,

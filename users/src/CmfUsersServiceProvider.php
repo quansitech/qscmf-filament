@@ -25,6 +25,8 @@ class CmfUsersServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        $this->registerModuleAssets();
+
         Gate::policy(config('cmf-users.model'), config('cmf-users.policy'));
 
         // 向 Shield 登记本模块的权限点；宿主已在 config/filament-shield.php
@@ -32,5 +34,20 @@ class CmfUsersServiceProvider extends PackageServiceProvider
         $manage = config('filament-shield.resources.manage', []);
         $manage[config('cmf-users.resource')] ??= config('cmf-users.permissions');
         config()->set('filament-shield.resources.manage', $manage);
+    }
+
+    /**
+     * 模块自身配置挂到 cmf-config，由 cmf:install 发布（不覆盖项目已有文件）；
+     * package-tools hasConfigFile 默认只登记 {shortName}-config tag。
+     */
+    protected function registerModuleAssets(): void
+    {
+        if (! $this->app->runningInConsole()) {
+            return;
+        }
+
+        $this->publishes([
+            __DIR__.'/../config/cmf-users.php' => config_path('cmf-users.php'),
+        ], 'cmf-config');
     }
 }

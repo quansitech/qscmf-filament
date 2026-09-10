@@ -21,6 +21,7 @@ class CmfCoreServiceProvider extends PackageServiceProvider
         $package
             ->name('cmf-core')
             ->hasConfigFile()
+            ->hasViews()
             ->hasCommands([
                 InstallCommand::class,
                 ExtendModuleCommand::class,
@@ -51,6 +52,17 @@ class CmfCoreServiceProvider extends PackageServiceProvider
             __DIR__.'/../stubs/panel/AdminPanelProvider.php.stub' => app_path('Providers/Filament/AdminPanelProvider.php'),
             __DIR__.'/../stubs/panel/theme.css.stub' => resource_path('css/filament/admin/theme.css'),
         ], 'cmf-panel');
+
+        // 模块自身配置挂到 cmf-config，保证 cmf:install 能落出 config/cmf-core.php
+        // （package-tools hasConfigFile 默认只登记 {shortName}-config tag）
+        $this->publishes([
+            __DIR__.'/../config/cmf-core.php' => config_path('cmf-core.php'),
+        ], 'cmf-config');
+
+        // 品牌静态资源（登录页 / 面板 logo），由 vendor:publish --tag=cmf-assets 落出
+        $this->publishes([
+            __DIR__.'/../resources/images' => public_path('vendor/cmf-core/images'),
+        ], 'cmf-assets');
     }
 
     /**

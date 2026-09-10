@@ -48,7 +48,9 @@ class CmfAuditingServiceProvider extends PackageServiceProvider
             return;
         }
 
+        // 模块自身配置一并挂到 cmf-config（package-tools 默认只登记 {shortName}-config tag）
         $this->publishes([
+            __DIR__.'/../config/cmf-auditing.php' => config_path('cmf-auditing.php'),
             __DIR__.'/../stubs/config/audit.php' => config_path('audit.php'),
             __DIR__.'/../stubs/config/filament-auditing.php' => config_path('filament-auditing.php'),
         ], 'cmf-config');

@@ -46,7 +46,9 @@ class CmfRolesServiceProvider extends PackageServiceProvider
             return;
         }
 
+        // 模块自身配置一并挂到 cmf-config（package-tools 默认只登记 {shortName}-config tag）
         $this->publishes([
+            __DIR__.'/../config/cmf-roles.php' => config_path('cmf-roles.php'),
             __DIR__.'/../stubs/config/permission.php' => config_path('permission.php'),
             __DIR__.'/../stubs/config/filament-shield.php' => config_path('filament-shield.php'),
         ], 'cmf-config');

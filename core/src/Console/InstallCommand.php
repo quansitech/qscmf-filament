@@ -36,10 +36,12 @@ class InstallCommand extends Command
         $this->components->info('开始安装 QS CMF...');
 
         $this->publishModuleAssets();
+        $this->publishFilamentAssets();
         $this->ensureAuthUserModel();
         $this->publishModuleMigrations();
         $this->call('migrate', ['--force' => true]);
         $this->scaffoldPanel();
+        $this->registerViteTheme();
         $this->generateShieldPermissions();
         $this->setupRoles();
         $this->createAdminUser();
@@ -47,7 +49,7 @@ class InstallCommand extends Command
         $this->components->info('QS CMF 安装完成。');
 
         $this->components->bulletList([
-            '执行 npm install && npm run build 编译 Filament 主题（vite.config.js 的 input 需包含 resources/css/filament/admin/theme.css）',
+            '执行 npm install && npm run build 编译 Filament 主题',
             '执行 php artisan serve 后访问 '.url($this->getPanelPath()).' 登录后台',
         ]);
 
@@ -55,7 +57,10 @@ class InstallCommand extends Command
     }
 
     /**
-     * 发布各 CMF 模块登记的配置、语言包与视图（tag: cmf-config / cmf-lang / cmf-views），
+     * 发布 core 与各 CMF 模块登记的配置、语言包、视图与品牌静态资源
+     * （tag: cmf-config / cmf-lang / cmf-views / cmf-assets；
+     * 各模块需把自身配置挂到 cmf-config，package-tools 默认登记的
+     * {shortName}-config 不在此发布范围），
      * 不覆盖项目已有文件（除非 --force）。
      */
     protected function publishModuleAssets(): void
@@ -70,6 +75,22 @@ class InstallCommand extends Command
             $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-config']);
             $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-lang']);
             $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-views']);
+            $this->callSilently('vendor:publish', [...$params, '--tag' => 'cmf-assets']);
+        });
+    }
+
+    /**
+     * 发布 Filament 前端资源（public/js|css/filament）。缺失时面板的 Alpine 组件
+     * 无法注册，会出现登录按钮无文字等异常；命令幂等，可安全重跑。
+     */
+    protected function publishFilamentAssets(): void
+    {
+        if (! $this->getApplication()?->has('filament:assets')) {
+            return;
+        }
+
+        $this->components->task('发布 Filament 前端资源', function (): void {
+            $this->callSilently('filament:assets');
         });
     }
 
@@ -218,6 +239,151 @@ class InstallCommand extends Command
         if (is_string($patched)) {
             file_put_contents($providersFile, $patched);
         }
+    }
+
+    /**
+     * 把 Filament 主题加入宿主 Vite 配置的 input（幂等），
+     * 免去用户手动改 vite.config.js；配置格式无法识别时提示手动处理。
+     */
+    protected function registerViteTheme(): void
+    {
+        $theme = (string) config('cmf-core.theme', 'resources/css/filament/admin/theme.css');
+
+        if ($theme === '' || ! file_exists(base_path($theme))) {
+            return;
+        }
+
+        /** @var string|null $configPath */
+        $configPath = collect(['vite.config.js', 'vite.config.ts'])
+            ->map(fn (string $file): string => base_path($file))
+            ->first(fn (string $path): bool => is_file($path));
+
+        if (! is_string($configPath)) {
+            return;
+        }
+
+        $contents = file_get_contents($configPath);
+
+        if (! is_string($contents) || str_contains($contents, $theme)) {
+            return;
+        }
+
+        $patched = $this->patchViteInput($contents, $theme);
+
+        if ($patched === null) {
+            $configFile = basename($configPath);
+            $this->components->warn("未能自动把 {$theme} 加入 {$configFile} 的 input，请手动处理。");
+
+            return;
+        }
+
+        file_put_contents($configPath, $patched);
+        $this->components->twoColumnDetail('Vite 主题入口', $theme);
+    }
+
+    /**
+     * 在 vite 配置的 input 数组/字符串里追加主题入口；识别不了 input 结构时返回 null。
+     */
+    protected function patchViteInput(string $contents, string $theme): ?string
+    {
+        if (! preg_match('/input\s*:\s*\[/s', $contents, $matches, PREG_OFFSET_CAPTURE)) {
+            return $this->patchViteInputString($contents, $theme);
+        }
+
+        $openPos = $matches[0][1] + strlen($matches[0][0]) - 1;
+        $closePos = $this->findMatchingBracket($contents, $openPos);
+
+        if ($closePos === null) {
+            return null;
+        }
+
+        $inner = substr($contents, $openPos + 1, $closePos - $openPos - 1);
+        $length = $closePos - $openPos - 1;
+
+        if (! str_contains($inner, "\n")) {
+            $body = rtrim(rtrim($inner, " \t"), ',');
+
+            return substr_replace($contents, ($body === '' ? '' : $body.', ')."'{$theme}' ", $openPos + 1, $length);
+        }
+
+        $closeIndent = $this->lineIndent($contents, $closePos);
+        $entryIndent = $this->entryIndent($inner, $closeIndent);
+        $body = trim($inner) === ''
+            ? ''
+            : rtrim($inner).(str_ends_with(rtrim($inner), ',') ? '' : ',');
+
+        return substr_replace(
+            $contents,
+            $body."\n{$entryIndent}'{$theme}',\n{$closeIndent}",
+            $openPos + 1,
+            $length,
+        );
+    }
+
+    /**
+     * input 为单个字符串入口时（input: 'resources/js/app.js'），改写为数组。
+     */
+    protected function patchViteInputString(string $contents, string $theme): ?string
+    {
+        if (! preg_match('/input\s*:\s*([\'"])([^\'"]+)\1/s', $contents, $matches, PREG_OFFSET_CAPTURE)) {
+            return null;
+        }
+
+        $entry = $matches[2][0];
+        $indent = $this->lineIndent($contents, $matches[0][1]);
+        $entryIndent = $indent.'    ';
+
+        $replacement = "input: [\n{$entryIndent}'{$entry}',\n{$entryIndent}'{$theme}',\n{$indent}]";
+
+        return substr_replace($contents, $replacement, $matches[0][1], strlen($matches[0][0]));
+    }
+
+    /**
+     * 从 '[' 位置起找到配对的 ']'。
+     */
+    protected function findMatchingBracket(string $contents, int $openPos): ?int
+    {
+        $depth = 0;
+        $length = strlen($contents);
+
+        for ($i = $openPos; $i < $length; $i++) {
+            if ($contents[$i] === '[') {
+                $depth++;
+            } elseif ($contents[$i] === ']') {
+                $depth--;
+
+                if ($depth === 0) {
+                    return $i;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 指定位置所在行的缩进。
+     */
+    protected function lineIndent(string $contents, int $pos): string
+    {
+        $lineStart = strrpos(substr($contents, 0, $pos), "\n");
+        $lineStart = $lineStart === false ? 0 : $lineStart + 1;
+
+        return substr($contents, $lineStart, strspn($contents, " \t", $lineStart, $pos - $lineStart));
+    }
+
+    /**
+     * input 数组内首个条目的缩进，用于对齐新增条目。
+     */
+    protected function entryIndent(string $inner, string $fallback): string
+    {
+        foreach (explode("\n", $inner) as $line) {
+            if (trim($line) !== '') {
+                return substr($line, 0, strspn($line, " \t"));
+            }
+        }
+
+        return $fallback.'    ';
     }
 
     /**

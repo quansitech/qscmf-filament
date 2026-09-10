@@ -132,6 +132,26 @@ class MakeModuleCommand extends Command
             {
                 Cmf::registerPlugin({$studly}Plugin::class);
             }
+
+            public function packageBooted(): void
+            {
+                \$this->registerModuleAssets();
+            }
+
+            /**
+             * 模块自身配置挂到 cmf-config，由 cmf:install 发布（不覆盖项目已有文件）；
+             * package-tools hasConfigFile 默认只登记 {shortName}-config tag。
+             */
+            protected function registerModuleAssets(): void
+            {
+                if (! \$this->app->runningInConsole()) {
+                    return;
+                }
+
+                \$this->publishes([
+                    __DIR__.'/../config/cmf-{$kebab}.php' => config_path('cmf-{$kebab}.php'),
+                ], 'cmf-config');
+            }
         }
 
         PHP;

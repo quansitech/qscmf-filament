@@ -17,6 +17,7 @@
 
 ### 初始化与新模块
 
-- 新项目接入：`composer require quansitech/cmf-*` 后 `php artisan cmf:install`（发布配置/语言包/视图 → 绑定用户模型 → 迁移 → 面板脚手架 → shield:generate 权限点 → 建角色 → 建管理员；幂等可重跑）。
-- 安装后需确认 `resources/css/filament/admin/theme.css` 在 vite input 中并执行 `npm run build`。
+- 新项目接入：`composer require quansitech/cmf-*` 后 `php artisan cmf:install`（发布配置/语言包/视图与 Filament 前端资源 → 绑定用户模型 → 迁移 → 面板脚手架 → shield:generate 权限点 → 建角色 → 建管理员；幂等可重跑）。
+- 安装后执行 `npm run build` 编译主题（cmf:install 已自动把 `resources/css/filament/admin/theme.css` 加入 vite input）。
 - 开发新模块：`php artisan make:cmf-module {Name} --path={包仓库目录}` 生成骨架，装包即自动挂面板。
+- 模块要发布给宿主的文件（配置/语言包/视图/静态资源）一律挂统一 tag `cmf-config` / `cmf-lang` / `cmf-views` / `cmf-assets`，由 `cmf:install` 发布；package-tools 的 `hasConfigFile()` 默认 tag（`{shortName}-config`）不在 cmf:install 范围内，模块自身配置需额外挂到 `cmf-config`。
