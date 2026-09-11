@@ -1,0 +1,49 @@
+{
+    "name": "quansitech/cmf-module-media",
+    "description": "QS CMF 媒体模块：TOS/OSS/COS 浏览器直传、内容哈希去重（秒传）、引用计数与归零自动清理、后台媒体管理",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "quansitech/cmf-core": "^1.0"
+    },
+    "require-dev": {
+        "league/flysystem-aws-s3-v3": "^3.29",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
+    },
+    "suggest": {
+        "league/flysystem-aws-s3-v3": "TOS（火山引擎对象存储）驱动需要：S3 兼容适配器（含 aws/aws-sdk-php）",
+        "xxtime/flysystem-aliyun-oss": "OSS（阿里云对象存储）驱动需要",
+        "overtrue/flysystem-cos": "COS（腾讯云对象存储）驱动需要"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Media\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Media\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Quansitech\\Cmf\\Media\\CmfMediaServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -26,6 +26,8 @@ jobs:
             repository_name: cmf-module-roles
           - local_path: auditing
             repository_name: cmf-module-auditing
+          - local_path: media
+            repository_name: cmf-module-media
     steps:
       - name: Checkout
         uses: actions/checkout@v4

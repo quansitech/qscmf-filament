@@ -1,24 +1,24 @@
 # 发布指南
 
-本仓库是 monorepo（真源），通过 CI split 出 4 个只读镜像仓库，Packagist 从镜像仓库取包。
+本仓库是 monorepo（真源），通过 CI split 出 5 个只读镜像仓库，Packagist 从镜像仓库取包。
 
 ```
 quansitech/qscmf-filament（本仓库，所有开发只在这里）
    ├── core/      ──split──► quansitech/cmf-core            ──┐
    ├── users/     ──split──► quansitech/cmf-module-users     ──┤
    ├── roles/     ──split──► quansitech/cmf-module-roles     ──┼──► Packagist
-   └── auditing/  ──split──► quansitech/cmf-module-auditing  ──┘
+   ├── auditing/  ──split──► quansitech/cmf-module-auditing  ──┤
+   └── media/     ──split──► quansitech/cmf-module-media     ──┘
 ```
 
 > 以下假设 monorepo 仓库为 `quansitech/qscmf-filament`、镜像仓库为 `quansitech/cmf-*`。命名不同时全局替换即可。
 
 ## 一次性配置
 
-1. 在 GitHub 创建 4 个 **public** 仓库，保持默认分支 `main`：
-   `cmf-core`、`cmf-module-users`、`cmf-module-roles`、`cmf-module-auditing`。
-   **每个仓库至少要有一个提交**（勾选 Add a README 或任意初始提交均可）——split action 在完全空的仓库上
-   建分支后会因"无提交可推"失败。
-2. 创建 fine-grained PAT，仅对这 4 个仓库授予 `Contents: Read and write`（或用 GitHub App 生成安装 token）。
+1. 在 GitHub 创建 5 个 **public** 仓库，保持默认分支 `main`：
+   `cmf-core`、`cmf-module-users`、`cmf-module-roles`、`cmf-module-auditing`、`cmf-module-media`。
+   action v2.4.5 起支持空仓库自动建分支（旧版本需至少一个初始提交）。
+2. 创建 fine-grained PAT，仅对这 5 个仓库授予 `Contents: Read and write`（或用 GitHub App 生成安装 token）。
    在本仓库 Settings → Secrets and variables → Actions 添加 secret：`SPLIT_TOKEN`（secret 里只放 token 原文，
    不带任何前缀；workflow 会自动加 `oauth2:` 前缀，因为 split action 不支持裸 fine-grained token，见
    [action issue #47](https://github.com/danharrin/monorepo-split-github-action/issues/47)）。
@@ -29,9 +29,9 @@ quansitech/qscmf-filament（本仓库，所有开发只在这里）
    git push origin v1.0.0
    ```
 
-4. 用 GitHub 账号登录 [packagist.org](https://packagist.org)，Submit 4 个镜像仓库地址，例如
+4. 用 GitHub 账号登录 [packagist.org](https://packagist.org)，Submit 5 个镜像仓库地址，例如
    `https://github.com/quansitech/cmf-core`。
-5. 按 Packagist 包页面的提示，在 4 个镜像仓库配置 webhook（或安装 Packagist GitHub App），
+5. 按 Packagist 包页面的提示，在 5 个镜像仓库配置 webhook（或安装 Packagist GitHub App），
    之后新 tag 会自动同步。
 
 ## 发版流程
@@ -47,7 +47,7 @@ CI（`.github/workflows/split.yml`）对每个包执行：
 1. 把子目录内容推到镜像仓库 `main`（内容无变化则跳过 commit）；
 2. 在镜像仓库创建并推送同名 tag（`v1.1.0`）。
 
-Packagist 收到 webhook 后刷新版本。统一版本策略下一次 tag 会给 4 个包都打上同一版本号；
+Packagist 收到 webhook 后刷新版本。统一版本策略下一次 tag 会给 5 个包都打上同一版本号；
 某个包本次没有改动时，tag 会打在它的当前内容上，版本号仍保持全局一致。
 
 ## 跨包依赖规则

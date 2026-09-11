@@ -1,7 +1,13 @@
 /vendor/
 /composer.lock
-/.idea/
-/.vscode/
+media/vendor/
+media/composer.lock
+.idea/
+.vscode/
 .DS_Store
 .phpunit.cache/
 .phpunit.result.cache
+
+.codegraph/
+.yunxiao/
+.opencode/
