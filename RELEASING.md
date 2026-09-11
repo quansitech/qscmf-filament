@@ -73,3 +73,7 @@ Packagist 收到 webhook 后刷新版本。统一版本策略下一次 tag 会�
 - tag 必须是合法 semver（`v1.0.0` 或 `1.0.0`），否则 Composer 不识别为版本。
 - `SPLIT_TOKEN` 未配置时 workflow 只打印 notice 并跳过 split（不报红），配置后自动生效。
 - 发布 = 打 tag，不要手动改镜像；所有变更先合入 monorepo `main`。
+- 新增镜像仓库后，须同步把它加入 `SPLIT_TOKEN`（fine-grained PAT）的授权仓库列表，
+  否则该包的 split 会因推送权限被拒而失败（其余包不受影响）。
+- media 包为后加入的独立仓库：其首个版本 `v1.0.0` 是在镜像仓库一次性引导发布的
+  （monorepo 的 `v1.0.0` tag 早于 media 存在，CI 无法补发）；此后统一 tag 会继续给它打新版本。
