@@ -9,6 +9,7 @@ QS CMF 媒体模块：TOS / OSS / COS 浏览器直传（亦支持 local 本地�
 - **内容哈希去重（秒传）**：前端 Web Worker 分片（8MB）+ spark-md5 增量计算 MD5，内存占用恒定、不阻塞 UI；后端 `hash` 唯一索引兜底，对象 key 即 hash 路径（`{hash前2位}/{hash}.{ext}`）
 - **回调防伪**：建档前 headObject 校验对象存在与 size 一致，单 PUT 对象的 ETag（即内容 MD5）与上报 hash 比对
 - **引用计数**：`media_usages` 关联表为准，`ref_count` 冗余加速；归零软删 + 延迟 Job 复查后删对象（可开关，见「归零删除队列」），竞态安全
+- **RichEditor 接管**：实现 Filament v5 `FileAttachmentProvider`，`HasMediaRichContent` 一行接入，富文本图片/附件上传自动去重建档、按内容 diff 同步引用、移除归零清理（见「RichEditor 富文本接管」）
 - **后台管理**：媒体列表（缩略图走云厂商 URL 图片处理参数，local 直接用原图；软删记录不展示）、详情页按类型预览（图片点击放大 / 视频音频在线播放 / 其他文件下载）、筛选/排序、引用明细、有引用禁删
 - **权限**：Shield 权限点自动登记，`MediaPolicy` 控制 viewAny / view / create / delete
 
@@ -68,6 +69,39 @@ use Quansitech\Cmf\Media\Filament\Forms\Components\MediaPicker;
 MediaPicker::make('cover')           // 单选，state 为 media id
 MediaPicker::make('gallery')->multiple()  // 多选，state 为 id 数组
 ```
+
+## RichEditor 富文本接管
+
+`RichEditor` 的图片/附件上传（拖入、粘贴、附件工具）默认落在 Filament 配置的 disk 上，无去重与引用管理。
+挂载 `HasMediaRichContent` 后，编辑器附件整体接入媒体库：
+
+- **上传即建档去重**：服务端计算内容 MD5，同一文件重复插入/上传复用同一 media 记录（软删记录自动恢复）；
+- **保存时同步引用**：按当前内容中的 media id 集合对字段 `syncMedia` 差集增删（新增 +1 / 移除 -1）；
+- **移除即清零删除**：图片从内容中移除并保存后引用归零，走既有软删 + 延迟 Job 清理链路；
+- **记录删除闭环**：宿主记录物理删除时自动清理富文本字段的引用（软删保留，恢复后引用仍在）；
+- **孤儿兜底**：上传后未保存表单的文件仍由每日 `cmf-media:prune-orphans` 清理。
+
+```php
+use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
+use Quansitech\Cmf\Media\Concerns\HasMedia;
+use Quansitech\Cmf\Media\Concerns\HasMediaRichContent;
+
+class Post extends Model implements HasRichContent
+{
+    use HasMedia;
+    use HasMediaRichContent;
+
+    protected array $mediaRichContentAttributes = ['content']; // 可配多个字段；省略时默认 ['content']
+}
+```
+
+表单照常使用 `RichEditor::make('content')`，无需额外配置。
+
+说明：
+
+- 编辑器图片节点的附件 id 即 media id，保存时节点 `src` 自动替换为媒体 URL；
+- 附件类型/大小前端校验沿用 RichEditor 配置（`fileAttachmentsAcceptedFileTypes()` / `fileAttachmentsMaxSize()`，默认仅常见图片、12MB），服务端另按本模块 `allowed_mimes` / `max_size` 白名单兜底；
+- 新建记录时附件保存与引用挂接延迟到记录创建后自动完成（Filament `FileAttachmentProvider` 标准生命周期）。
 
 ## 上传链路
 

@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace Quansitech\Cmf\Media\Http\Controllers;
 
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Quansitech\Cmf\Media\Contracts\ObjectInspector;
 use Quansitech\Cmf\Media\Models\Media;
 use Quansitech\Cmf\Media\Support\MediaManager;
+use Quansitech\Cmf\Media\Support\MediaUploader;
 
 /**
  * 浏览器直传三端点：check（查重秒传）/ sign（签发凭证）/ callback（建档），
@@ -111,7 +110,7 @@ class MediaUploadController extends Controller
      * 落盘到 hash 路径并建档。秒传去重由前置 check 承担，此处相同内容
      * 重复上传时复用已有记录（hash 唯一索引兜底）。
      */
-    public function upload(Request $request): JsonResponse
+    public function upload(Request $request, MediaUploader $uploader): JsonResponse
     {
         $model = $this->model();
         Gate::authorize('create', $model);
@@ -127,63 +126,12 @@ class MediaUploadController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $file = $request->file('file');
-        $size = (int) $file->getSize();
-
-        if ($size < 1 || $size > (int) config('cmf-media.max_size')) {
-            throw ValidationException::withMessages([
-                'size' => '文件超过大小上限 '.((int) config('cmf-media.max_size') / 1024 / 1024).'MB',
-            ]);
-        }
-
-        // MIME 以服务端探测为准，客户端上报不可信
-        $mime = $file->getMimeType() ?: 'application/octet-stream';
-
-        if (! MediaManager::mimeAllowed($mime)) {
-            throw ValidationException::withMessages([
-                'mime' => '不允许的文件类型：'.$mime,
-            ]);
-        }
-
-        // 服务器亲自计算内容指纹：与客户端上报不符即拒绝
-        $hash = md5_file($file->getRealPath());
-
-        if (! is_string($hash) || ! hash_equals(strtolower($hash), strtolower($data['hash']))) {
-            throw ValidationException::withMessages(['hash' => '文件指纹与上报哈希不符']);
-        }
-
-        $ext = MediaManager::safeExtension($data['name']);
-        $key = Media::objectKey($hash, $ext);
-        $diskName = Media::diskName('local');
-
-        if (! Storage::disk($diskName)->exists($key)) {
-            $stream = fopen($file->getRealPath(), 'r');
-            Storage::disk($diskName)->put($key, $stream);
-
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }
-
-        // 图片尺寸服务端直接读取（云直传靠客户端上报，local 自己算更可信）
-        $width = $height = null;
-
-        if (str_starts_with($mime, 'image/')) {
-            $imageSize = @getimagesize($file->getRealPath());
-
-            if (is_array($imageSize)) {
-                [$width, $height] = [$imageSize[0], $imageSize[1]];
-            }
-        }
-
-        $media = $this->firstOrCreate($model, 'local', $key, [
-            'hash' => $hash,
-            'name' => $data['name'],
-            'mime' => $mime,
-            'size' => $size,
-            'width' => $width,
-            'height' => $height,
-        ], $ext, $request->user()?->getAuthIdentifier());
+        $media = $uploader->store(
+            $request->file('file'),
+            clientHash: $data['hash'],
+            originalName: $data['name'],
+            uploaderId: $request->user()?->getAuthIdentifier(),
+        );
 
         return response()->json(['media' => $this->mediaJson($media)]);
     }
@@ -192,7 +140,7 @@ class MediaUploadController extends Controller
      * 直传完成回调建档：校验对象真实存在、size 一致、ETag 与上报 hash 一致（防伪），
      * hash 唯一索引兜底并发重复回调。
      */
-    public function callback(Request $request, ObjectInspector $inspector): JsonResponse
+    public function callback(Request $request, ObjectInspector $inspector, MediaUploader $uploader): JsonResponse
     {
         $model = $this->model();
         Gate::authorize('create', $model);
@@ -234,7 +182,7 @@ class MediaUploadController extends Controller
             throw ValidationException::withMessages(['hash' => '云端对象指纹与上报哈希不符']);
         }
 
-        $media = $this->firstOrCreate($model, $driver, $expectedKey, $data, $ext, $request->user()?->getAuthIdentifier());
+        $media = $uploader->firstOrCreate($driver, $expectedKey, $data, $ext, $request->user()?->getAuthIdentifier());
 
         return response()->json(['media' => $this->mediaJson($media)]);
     }
@@ -259,53 +207,6 @@ class MediaUploadController extends Controller
                 'last_page' => $paginator->lastPage(),
             ],
         ]);
-    }
-
-    /**
-     * hash 唯一索引兜底并发重复回调：撞唯一约束时改查已有记录。
-     *
-     * @param  class-string<Media>  $model
-     * @param  array<string, mixed>  $data
-     */
-    protected function firstOrCreate(string $model, string $driver, string $key, array $data, string $ext, int|string|null $uploaderId): Media
-    {
-        // 含软删记录：同 hash 重复上传直接复用并恢复
-        /** @var Media|null $existing */
-        $existing = $model::withTrashed()->where('hash', $data['hash'])->first();
-
-        if ($existing instanceof Media) {
-            if ($existing->trashed()) {
-                $existing->restore();
-            }
-
-            return $existing;
-        }
-
-        try {
-            /** @var Media $media */
-            $media = $model::create([
-                'hash' => $data['hash'],
-                'disk' => $driver,
-                'path' => $key,
-                'original_name' => $data['name'],
-                'mime' => $data['mime'],
-                'ext' => $ext,
-                'size' => $data['size'],
-                'width' => $data['width'] ?? null,
-                'height' => $data['height'] ?? null,
-                'uploader_id' => $uploaderId,
-            ]);
-        } catch (QueryException) {
-            // 并发重复回调撞唯一索引：改查已有记录
-            /** @var Media $media */
-            $media = $model::withTrashed()->where('hash', $data['hash'])->firstOrFail();
-        }
-
-        if ($media->trashed()) {
-            $media->restore();
-        }
-
-        return $media;
     }
 
     /**

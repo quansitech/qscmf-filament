@@ -23,5 +23,13 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('articles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('title')->nullable();
+            $table->longText('content')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
     }
 };
