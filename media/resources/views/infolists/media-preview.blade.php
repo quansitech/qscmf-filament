@@ -15,17 +15,18 @@
             <img
                 src="{{ $media->thumbUrl() ?? $url }}"
                 alt="{{ $media->original_name }}"
-                class="max-h-80 rounded-lg border border-gray-200 dark:border-gray-700"
+                style="max-width: 100%; max-height: 24rem;"
+                class="rounded-lg border border-gray-200 dark:border-gray-700"
             />
         </a>
         <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">点击图片在新窗口查看原图</p>
     @elseif (str_starts_with($media->mime, 'video/'))
-        <video controls preload="metadata" class="max-h-80 w-full max-w-xl rounded-lg border border-gray-200 dark:border-gray-700">
+        <video controls preload="metadata" style="width: 100%; max-width: 36rem; max-height: 24rem;" class="rounded-lg border border-gray-200 dark:border-gray-700">
             <source src="{{ $url }}" type="{{ $media->mime }}" />
             您的浏览器不支持视频播放。
         </video>
     @elseif (str_starts_with($media->mime, 'audio/'))
-        <audio controls preload="metadata" class="w-full max-w-xl">
+        <audio controls preload="metadata" style="width: 100%; max-width: 36rem;">
             <source src="{{ $url }}" type="{{ $media->mime }}" />
             您的浏览器不支持音频播放。
         </audio>
