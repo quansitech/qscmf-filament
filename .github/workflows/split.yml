@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
+    # 独立版本策略：tag 为 {package}-v{version}（如 media-v1.1.0），只 split 对应包；
+    # 裸 v* tag（旧的统一版本）不再触发
     tags:
-      - 'v*'
+      - '*-v*'
 
 env:
   # 该 action 只支持经典 PAT 裸用；fine-grained PAT 需要 oauth2: 前缀作为密码认证
@@ -32,6 +34,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve tag
+        id: tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PACKAGE="${TAG%%-v*}"
+          VERSION="v${TAG##*-v}"
+
+          case "$PACKAGE" in
+            core|users|roles|auditing|media) ;;
+            *)
+              echo "::error::无法识别的 tag '$TAG'：请使用 {package}-v{version} 格式（package: core/users/roles/auditing/media）"
+              exit 1
+              ;;
+          esac
+
+          echo "package=$PACKAGE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$PACKAGE" = "${{ matrix.package.local_path }}" ]; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "match=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Check split token
         id: preflight
         env:
@@ -56,13 +83,13 @@ jobs:
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'
 
       - name: Split tag
-        if: ${{ steps.preflight.outputs.enabled == 'true' && startsWith(github.ref, 'refs/tags/') }}
+        if: ${{ steps.preflight.outputs.enabled == 'true' && startsWith(github.ref, 'refs/tags/') && steps.tag.outputs.match == 'true' }}
         uses: danharrin/monorepo-split-github-action@v2.4.5
         with:
           package_directory: ${{ matrix.package.local_path }}
           repository_organization: quansitech
           repository_name: ${{ matrix.package.repository_name }}
           branch: main
-          tag: ${{ github.ref_name }}
+          tag: ${{ steps.tag.outputs.version }}
           user_name: 'github-actions[bot]'
           user_email: '41898282+github-actions[bot]@users.noreply.github.com'

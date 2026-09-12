@@ -131,4 +131,4 @@ php artisan make:cmf-module Blog --path=/var/www/qscmf-filament
 
 本仓库为 monorepo（唯一真源），CI 按目录 split 出只读镜像仓库并同步到 Packagist：
 `quansitech/cmf-core` / `quansitech/cmf-module-users` / `quansitech/cmf-module-roles` / `quansitech/cmf-module-auditing` / `quansitech/cmf-module-media`。
-发版只需在本仓库打 tag（如 `v1.1.0`），完整流程见 [RELEASING.md](RELEASING.md)。
+发版按包独立打 tag（如 `media-v1.1.0`，只 split 并发布 media），完整流程见 [RELEASING.md](RELEASING.md)。
