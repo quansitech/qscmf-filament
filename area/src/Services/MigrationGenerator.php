@@ -242,6 +242,10 @@ class MigrationGenerator
 
         return [
             'version' => (string) $changes['version'],
+            // 本次升级的基线版本（生成时的当前数据版本，发布流程随后才更新 config）：
+            // 执行器据此守卫——库内数据版本与 from_version 不一致时跳过
+            //（全新安装导入的基线已包含本次变更，重放会误伤有效行）
+            'from_version' => (string) config('cmf-area.data_version'),
             // 行级回滚日志标记：执行器 revert 据此走 journal 精确回放（无标记的旧格式文件走旧式值扫描）
             'journal' => true,
             'areas' => [...$continuedOps, ...$retireOps, ...$archiveOps, ...$insertOps],

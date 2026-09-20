@@ -51,7 +51,18 @@ class MigrationExecutor
         $this->assertTablesExist();
         $this->assertJournalTableExists();
 
-        return DB::transaction(function () use ($payload): array {
+        // 数据版本守卫：payload 冻结的 from_version 与库内当前数据版本不一致时跳过——
+        // 典型场景是全新安装：新基线已包含本次变更，重放历史 update 会让
+        // archive（废止复用）等操作误删有效行。空标记（未接入守卫的老项目）放行。
+        $fromVersion = $payload['from_version'] ?? null;
+        $dataVersion = app(AreaDataVersion::class);
+        if (is_string($fromVersion) && $fromVersion !== '' && ! $dataVersion->shouldApply($fromVersion)) {
+            Log::info("区划升级 {$payload['version']} 跳过：库内数据版本（".$dataVersion->current()."）与迁移基线（{$fromVersion}）不一致，当前基线已包含本次变更");
+
+            return ['affected' => [], 'manual' => [], 'info' => []];
+        }
+
+        return DB::transaction(function () use ($payload, $dataVersion): array {
             $version = (string) $payload['version'];
 
             $this->applyAreaOps($version, $payload['areas'] ?? []);
@@ -63,6 +74,8 @@ class MigrationExecutor
             $this->writeRecords($payload, $affected);
 
             $this->report($payload, $manual, $info);
+
+            $dataVersion->mark($version);
 
             return ['affected' => $affected, 'manual' => $manual, 'info' => $info];
         });
