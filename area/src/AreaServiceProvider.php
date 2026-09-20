@@ -8,6 +8,7 @@ use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Quansitech\Cmf\Area\Console\Commands\CheckChangesCommand;
 use Quansitech\Cmf\Area\Console\Commands\CheckUpstreamCommand;
+use Quansitech\Cmf\Area\Console\Commands\CleanupJournalCommand;
 use Quansitech\Cmf\Area\Console\Commands\DiffCommand;
 use Quansitech\Cmf\Area\Console\Commands\DownloadCommand;
 use Quansitech\Cmf\Area\Console\Commands\GenerateMigrationCommand;
@@ -34,6 +35,7 @@ class AreaServiceProvider extends PackageServiceProvider
                 CheckChangesCommand::class,
                 GenerateMigrationCommand::class,
                 SyncReferencesCommand::class,
+                CleanupJournalCommand::class,
             ]);
     }
 

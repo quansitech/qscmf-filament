@@ -38,11 +38,14 @@ function grantAllPermissions(): void
 }
 
 /**
- * 只迁移模块的 3 张建表迁移（跳过 4 万行的全量数据 seed，加速测试）。
+ * 只迁移模块的建表/结构迁移（跳过 4 万行的全量数据 seed，加速测试）。
  */
 function migrateAreaSchema(): void
 {
-    foreach (glob(__DIR__.'/../database/migrations/2026_09_15_00000[123]_*.php') ?: [] as $file) {
+    foreach (glob(__DIR__.'/../database/migrations/2026_09_1*_*.php') ?: [] as $file) {
+        if (str_contains(basename($file), '_seed_')) {
+            continue;
+        }
         Illuminate\Support\Facades\Artisan::call('migrate', ['--path' => $file, '--realpath' => true]);
     }
 }
@@ -63,4 +66,23 @@ function createArea(array $attributes): Quansitech\Cmf\Area\Models\Area
         'status' => 1,
         ...$attributes,
     ]);
+}
+
+/**
+ * 生成迷你 csv fixture（v2 语义用例用），返回文件路径。
+ * 行格式：[id, pid, deep, name, ext_name]（pinyin/ext_id 自动填充）。
+ *
+ * @param  list<array{int, int, int, string, string}>  $rows
+ */
+function writeAreaCsvFixture(string $fileName, array $rows): string
+{
+    $path = sys_get_temp_dir().'/'.$fileName;
+    $fh = fopen($path, 'w');
+    fputcsv($fh, ['id', 'pid', 'deep', 'name', 'pinyin_prefix', 'pinyin', 'ext_id', 'ext_name']);
+    foreach ($rows as [$id, $pid, $deep, $name, $extName]) {
+        fputcsv($fh, [$id, $pid, $deep, $name, 'c', 'ce shi', $id * 1000000, $extName]);
+    }
+    fclose($fh);
+
+    return $path;
 }
