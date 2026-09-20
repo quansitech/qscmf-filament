@@ -119,8 +119,12 @@ php artisan area:generate-migration changes.json ...               # ⑤ 生成�
 ## 测试
 
 ```bash
-cd area && composer install && vendor/bin/pest
+cd area && composer install && composer test
 ```
+
+- `composer test`：串行跑全量（脚本已内置 `XDEBUG_MODE=off`，避免本机 Xdebug 拖慢 ~45%）。
+- `composer test:parallel`：按文件分进程并行跑全量（paratest），多核机器上最快。
+- 直接 `vendor/bin/pest` 亦可，但请先 `export XDEBUG_MODE=off`（`xdebug.mode=debug` 会让套件慢近一倍）。
 
 覆盖：diff 判定、导入（BOM/引号/12 位 ext_id）、登记同步与类型拦截、强制校验（Cast/Picker）、
 迁移执行（五类结构 op、remap/keep 策略、幂等、延迟绑定）、A 级精确回滚（链式复用整行恢复、

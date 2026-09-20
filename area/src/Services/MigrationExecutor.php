@@ -39,6 +39,9 @@ class MigrationExecutor
     /** 业务行日志分块大小（同事务分块，内存可控） */
     protected const BIZ_CHUNK = 1000;
 
+    /** 回放期的主键探测缓存（"table.column" => 主键列|null），避免逐行重复探测 */
+    protected array $pkColumnCache = [];
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array{affected: array<string, int>, manual: list<array<string, mixed>>, info: list<string>}
@@ -346,7 +349,7 @@ class MigrationExecutor
 
         // biz 行级：守卫条件回放——只还原至今仍呈现迁移写入结果的行，
         // 升级后被业务改写的行跳过并记入跳过清单（不覆盖业务新数据）
-        $pkColumn = $this->primaryKeyOf($entry->table_name, $this->declaredPkColumnOf($entry->table_name, $entry->column_name));
+        $pkColumn = $this->cachedPkColumnOf($entry->table_name, $entry->column_name);
 
         $affected = $pkColumn === null ? 0 : DB::table($entry->table_name)
             ->where($pkColumn, $entry->pk)
@@ -651,6 +654,21 @@ class MigrationExecutor
             'to_value' => $toValue,
             'created_at' => now(),
         ];
+    }
+
+    /**
+     * 回放期的登记列主键探测（带实例级缓存）：同一 (table, column) 在一次回放中
+     * 会被逐行命中数千次，登记表查询与索引 introspection 只应做一次。
+     */
+    protected function cachedPkColumnOf(string $table, string $column): ?string
+    {
+        $key = $table.'.'.$column;
+
+        if (! array_key_exists($key, $this->pkColumnCache)) {
+            $this->pkColumnCache[$key] = $this->primaryKeyOf($table, $this->declaredPkColumnOf($table, $column));
+        }
+
+        return $this->pkColumnCache[$key];
     }
 
     /**
