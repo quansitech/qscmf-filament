@@ -549,3 +549,45 @@ it('⑪ 下级边省略 evidence/summary 时继承单位级边；无单位级边
     $exit = Artisan::call('area:check-changes', ['changes' => $path, '--old' => $f['old'], '--new' => $f['new']]);
     expect($exit)->toBe(1)->and(Artisan::output())->toContain('必须自证');
 });
+
+it('⑫ 换码的两种合法姿势：只写 edge（极简）与 edge+端点 node（叙述型）均通过', function (): void {
+    $old = writeAreaCsvFixture('v3_i8_old.csv', [
+        [10, 0, 0, '测试省', '测试省'],
+        [1000, 10, 1, '测试市', '测试市'],
+        [100001, 1000, 2, '龙田乡', '龙田乡'],
+        [100001001, 100001, 3, '龙田村', '龙田村'],
+    ]);
+    $new = writeAreaCsvFixture('v3_i8_new.csv', [
+        [10, 0, 0, '测试省', '测试省'],
+        [1000, 10, 1, '测试市', '测试市'],
+        [200001, 1000, 2, '龙田镇', '龙田镇'],
+        [200001001, 200001, 3, '龙田社区', '龙田社区'],
+    ]);
+    $path = sys_get_temp_dir().'/v3_i8.json';
+
+    // 极简姿势：只写 edge（端点存续状态由边端点蕴含）
+    $changes = [
+        'schema_version' => 3,
+        'version' => '2026.260101.260101',
+        'evidence' => ['ev' => ['title' => 't', 'url' => 'https://example.com']],
+        'changes' => [
+            ['kind' => 'edge', 'from_id' => 100001, 'to_id' => 200001,
+                'summary' => '撤龙田乡设龙田镇', 'evidence' => ['ev']],
+            ['kind' => 'edge', 'from_id' => 100001001, 'to_id' => 200001001, 'evidence' => ['ev']],
+        ],
+    ];
+    file_put_contents($path, json_encode($changes));
+    $exit = Artisan::call('area:check-changes', ['changes' => $path, '--old' => $old, '--new' => $new]);
+    expect($exit)->toBe(0);
+
+    // 叙述型姿势：edge 之外补端点 node 挂 summary/evidence（v3 双层设计：边为执行骨架、
+    // node 为存续叙述与证据载体，机器按图整体消费，不构成冗余/失真）
+    $changes['changes'][] = ['kind' => 'node', 'id' => 100001, 'name' => '龙田乡', 'state' => 'retired',
+        'summary' => '撤销龙田乡设立龙田镇，行政区域不变', 'evidence' => ['ev']];
+    $changes['changes'][] = ['kind' => 'node', 'id' => 200001, 'name' => '龙田镇', 'state' => 'appeared',
+        'summary' => '撤龙田乡设立龙田镇，区划代码 200001', 'evidence' => ['ev']];
+    file_put_contents($path, json_encode($changes));
+    $exit = Artisan::call('area:check-changes', ['changes' => $path, '--old' => $old, '--new' => $new]);
+    expect($exit)->toBe(0);
+});
+

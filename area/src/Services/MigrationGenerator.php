@@ -298,13 +298,14 @@ class MigrationGenerator
     }
 
     /**
-     * 迁移文件名：{date}_area_update_{version}.php（版本号中的 . 转 _）。
+     * 迁移文件名：{date}_area_update_{version}.php（版本号中的 . 与 + 转 _，
+     * + 来自部分地区发版的自有版本号，见升级方案 §3.3）。
      */
     public function migrationFileName(string $version, ?string $date = null): string
     {
         $date ??= date('Y_m_d');
 
-        return $date.'_area_update_'.str_replace('.', '_', $version).'.php';
+        return $date.'_area_update_'.str_replace(['.', '+'], '_', $version).'.php';
     }
 
     /**
