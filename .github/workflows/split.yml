@@ -34,6 +34,8 @@ jobs:
             repository_name: cmf-module-area
           - local_path: import
             repository_name: cmf-module-import
+          - local_path: wechat-article
+            repository_name: cmf-module-wechat-article
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,9 +49,9 @@ jobs:
           VERSION="v${TAG##*-v}"
 
           case "$PACKAGE" in
-            core|users|roles|auditing|media|area|import) ;;
+            core|users|roles|auditing|media|area|import|wechat-article) ;;
             *)
-              echo "::error::无法识别的 tag '$TAG'：请使用 {package}-v{version} 格式（package: core/users/roles/auditing/media/area/import）"
+              echo "::error::无法识别的 tag '$TAG'：请使用 {package}-v{version} 格式（package: core/users/roles/auditing/media/area/import/wechat-article）"
               exit 1
               ;;
           esac

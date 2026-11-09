@@ -6,6 +6,8 @@ area/vendor/
 area/composer.lock
 import/vendor/
 import/composer.lock
+wechat-article/vendor/
+wechat-article/composer.lock
 .idea/
 .vscode/
 .DS_Store

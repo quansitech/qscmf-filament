@@ -1,6 +1,6 @@
 {
     "name": "quansitech/cmf-monorepo",
-    "description": "QS CMF monorepo 开发入口：聚合 core / users / roles / auditing / media / area / import 七个包（不对外发布）",
+    "description": "QS CMF monorepo 开发入口：聚合 core / users / roles / auditing / media / area / import / wechat-article 八个包（不对外发布）",
     "type": "project",
     "license": "proprietary",
     "repositories": [
@@ -10,7 +10,8 @@
         { "type": "path", "url": "auditing", "options": { "symlink": true } },
         { "type": "path", "url": "media", "options": { "symlink": true } },
         { "type": "path", "url": "area", "options": { "symlink": true } },
-        { "type": "path", "url": "import", "options": { "symlink": true } }
+        { "type": "path", "url": "import", "options": { "symlink": true } },
+        { "type": "path", "url": "wechat-article", "options": { "symlink": true } }
     ],
     "require": {
         "quansitech/cmf-core": "^1.0@dev",
@@ -19,7 +20,8 @@
         "quansitech/cmf-module-import": "^1.0@dev",
         "quansitech/cmf-module-media": "^1.0@dev",
         "quansitech/cmf-module-roles": "^1.0@dev",
-        "quansitech/cmf-module-users": "^1.0@dev"
+        "quansitech/cmf-module-users": "^1.0@dev",
+        "quansitech/cmf-module-wechat-article": "^1.0@dev"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
