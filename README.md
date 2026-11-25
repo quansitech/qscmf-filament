@@ -14,6 +14,7 @@
 | `area`（quansitech/cmf-module-area） | 行政区划：内置四级区划数据、业务引用登记（merge_strategy）、AreaPicker、上游变更升级流水线 |
 | `import`（quansitech/cmf-module-import） | 导入扩展：仅 xlsx 导入（单元格归一与可疑值行级拒绝）、xlsx 模板生成（文本锁定/长度/下拉）、失败清单 xlsx 导出 |
 | `rich-content`（quansitech/cmf-module-rich-content） | TinyMCE 富文本、图片/视频直传、公众号正文导入和媒体引用；见 [安装说明](rich-content/README.md) |
+| `agent`（quansitech/cmf-module-agent） | 后台 AI 助手对话页：基于 packstub/filament-agents，按会话审批写入，复用 CMF 的资源配置、Policy 与审计；见 [安装说明](agent/README.md) |
 
 ## 安装（新项目）
 
@@ -34,6 +35,8 @@ cd my-admin
 composer require quansitech/cmf-core quansitech/cmf-module-users quansitech/cmf-module-roles quansitech/cmf-module-auditing
 # 可选：TinyMCE 富文本（自动依赖 cmf-module-media）
 # composer require quansitech/cmf-module-rich-content
+# 可选：后台 AI 助手对话页（依赖 packstub/filament-agents）
+# composer require quansitech/cmf-module-agent
 ```
 
 ### 3. 一键初始化
@@ -135,5 +138,5 @@ php artisan make:cmf-module Blog --path=/var/www/qscmf-filament
 ## 仓库与发布
 
 本仓库为 monorepo（唯一真源），CI 按目录 split 出只读镜像仓库并同步到 Packagist：
-`quansitech/cmf-core` / `quansitech/cmf-module-users` / `quansitech/cmf-module-roles` / `quansitech/cmf-module-auditing` / `quansitech/cmf-module-media` / `quansitech/cmf-module-area` / `quansitech/cmf-module-import`。
+`quansitech/cmf-core` / `quansitech/cmf-module-users` / `quansitech/cmf-module-roles` / `quansitech/cmf-module-auditing` / `quansitech/cmf-module-media` / `quansitech/cmf-module-area` / `quansitech/cmf-module-import` / `quansitech/cmf-module-agent`。
 发版按包独立打 tag（如 `media-v1.1.0`，只 split 并发布 media），完整流程见 [RELEASING.md](.github/RELEASING.md)。

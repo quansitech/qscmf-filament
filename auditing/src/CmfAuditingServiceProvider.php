@@ -28,7 +28,7 @@ class CmfAuditingServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         $this->registerModuleAssets();
-        $this->configureAuditGates();
+        $this->app->booted(fn () => $this->configureAuditGates());
 
         // 插件不再注册自带的英文 AuditResource，改由本模块的中文版注册
         config()->set('filament-auditing.resources', config('filament-auditing.resources', []));

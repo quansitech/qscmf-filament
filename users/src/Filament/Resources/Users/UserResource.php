@@ -208,9 +208,9 @@ class UserResource extends Resource
     #[Override]
     public static function getRelations(): array
     {
-        return [
-            AuditsRelationManager::class,
-        ];
+        $relations = [AuditsRelationManager::class];
+
+        return $relations;
     }
 
     public static function getPages(): array

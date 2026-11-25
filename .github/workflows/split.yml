@@ -36,6 +36,8 @@ jobs:
             repository_name: cmf-module-import
           - local_path: rich-content
             repository_name: cmf-module-rich-content
+          - local_path: agent
+            repository_name: cmf-module-agent
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,9 +51,9 @@ jobs:
           VERSION="v${TAG##*-v}"
 
           case "$PACKAGE" in
-            core|users|roles|auditing|media|area|import|rich-content) ;;
+            core|users|roles|auditing|media|area|import|rich-content|agent) ;;
             *)
-              echo "::error::无法识别的 tag '$TAG'：请使用 {package}-v{version} 格式（package: core/users/roles/auditing/media/area/import/rich-content）"
+              echo "::error::无法识别的 tag '$TAG'：请使用 {package}-v{version} 格式（package: core/users/roles/auditing/media/area/import/rich-content/agent）"
               exit 1
               ;;
           esac

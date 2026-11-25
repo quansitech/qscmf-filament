@@ -1,0 +1,42 @@
+{
+    "name": "quansitech/cmf-module-agent",
+    "description": "CMF Filament assistant powered by Packstub Agents",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.5",
+        "filament/filament": "^5.0",
+        "packstub/filament-agents": "~1.20.0",
+        "quansitech/cmf-core": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Agent\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Quansitech\\Cmf\\Agent\\CmfAgentServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "phpunit/phpunit": "^12.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Quansitech\\Cmf\\Agent\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit -c phpunit.xml"
+    }
+}
